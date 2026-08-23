@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NOVA AI</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+:root[data-theme="light"] {
+  --bg: #ffffff;
+  --sidebar-bg: #f8f9fa;
+  --text: #1f1f1f;
+  --text-muted: #666666;
+  --border: #e3e3e3;
+  --hover: #f1f3f4;
+  --msg-user: #f0f4f9;
+  --msg-ai: transparent;
+  --card: #ffffff;
+  --shadow: rgba(0, 0, 0, 0.08);
+  --code-bg: #f6f8fa;
+  --input-bg: #ffffff;
+  --accent: #111111;
+  --accent-text: #ffffff;
+  --agent-color: #8b5cf6;
+}
+
+:root[data-theme="dark"] {
+  --bg: #131314;
+  --sidebar-bg: #1e1e1f;
+  --text: #e3e3e3;
+  --text-muted: #a0a0a0;
+  --border: #2e2e2f;
+  --hover: #282a2c;
+  --msg-user: #282a2c;
+  --msg-ai: transparent;
+  --card: #1e1e1f;
+  --shadow: rgba(0, 0, 0, 0.4);
+  --code-bg: #1e1e1f;
+  --input-bg: #1e1e1f;
+  --accent: #e3e3e3;
+  --accent-text: #111111;
+  --agent-color: #a78bfa;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body,html{width:100%;height:100%;overflow:hidden;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Tahoma,sans-serif;background:var(--bg);color:var(--text);transition:background 0.2s,color 0.2s}
+button,input,textarea{font:inherit;color:inherit}
+
+svg{display:block;flex-shrink:0;pointer-events:none}
+
+.sidebar-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.5);
+  z-index:9990;
+  display:none;
+  backdrop-filter:blur(3px);
+}
+.sidebar-overlay.open{display:block}
+
+.sidebar{
+  position:fixed;
+  top:0;
+  bottom:0;
+  right:0;
+  width:280px;
+  background:var(--sidebar-bg);
+  border-left:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  padding:14px 12px;
+  transition:transform 0.25s ease;
+  z-index:9999;
+}
+
+.brand{display:flex;align-items:center;justify-content:space-between;padding:4px 8px 16px;font-weight:700;font-size:18px}
+.logo-area{display:flex;align-items:center;gap:10px}
+.logo{width:32px;height:32px;border-radius:10px;background:var(--accent);color:var(--accent-text);display:grid;place-items:center}
+
+.new-btn{border:1px solid var(--border);background:var(--card);border-radius:12px;padding:11px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:14px;font-weight:600;box-shadow:0 1px 3px var(--shadow);transition:.2s}
+.new-btn:hover{background:var(--hover)}
+
+.chats-section{font-size:12px;color:var(--text-muted);padding:4px 8px 8px}
+.chats-list{overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:4px}
+.chat-item{border:0;background:transparent;width:100%;text-align:right;padding:10px 12px;border-radius:10px;cursor:pointer;display:flex;gap:10px;align-items:center;justify-content:space-between;color:var(--text);transition:.15s}
+.chat-item:hover{background:var(--hover)}
+.chat-item.active{background:var(--hover);font-weight:600}
+.chat-title-group{display:flex;align-items:center;gap:8px;overflow:hidden;flex:1}
+.chat-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-del{border:0;background:transparent;color:var(--text-muted);cursor:pointer;opacity:0.6;padding:6px;border-radius:6px;transition:.15s;display:grid;place-items:center}
+.chat-item:hover .chat-del{opacity:1}
+.chat-del:hover{color:#ff4d4f;background:rgba(255,77,79,0.1)}
+
+.profile{border-top:1px solid var(--border);padding-top:12px;margin-top:auto;display:flex;align-items:center;justify-content:space-between}
+.profile-info{display:flex;align-items:center;gap:10px}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--hover);border:1px solid var(--border);color:var(--text);display:grid;place-items:center;font-size:14px;font-weight:bold}
+.profile small{color:var(--text-muted);font-size:11px}
+
+@media(min-width:769px){
+  .sidebar{transform:translateX(0) !important}
+  .main{margin-right:280px}
+  .sidebar-overlay{display:none !important}
+}
+
+@media(max-width:768px){
+  .sidebar{transform:translateX(100%);box-shadow:-5px 0 25px var(--shadow)}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-right:0}
+}
+
+.app{width:100vw;height:100dvh;display:flex;position:fixed;inset:0;overflow:hidden}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;position:relative;background:var(--bg)}
+.topbar{height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:1px solid var(--border);gap:8px}
+.top-left,.top-right{display:flex;align-items:center;gap:8px}
+.topbar-title{font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px;white-space:nowrap}
+
+/* Mode Pills Toolbar */
+.mode-bar{display:flex;align-items:center;gap:6px;overflow-x:auto;padding:4px;border-radius:12px;background:var(--hover);max-width:50%}
+.mode-pill{border:0;background:transparent;padding:5px 10px;border-radius:8px;font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap;color:var(--text-muted);transition:.2s;display:flex;align-items:center;gap:5px}
+.mode-pill.active{background:var(--card);color:var(--text);box-shadow:0 1px 4px var(--shadow)}
+.agent-pill{border:1px solid var(--agent-color);color:var(--agent-color)}
+.agent-pill.active{background:var(--agent-color);color:#fff}
+
+.icon-btn{width:38px;height:38px;border:0;background:transparent;border-radius:10px;cursor:pointer;display:grid;place-items:center;color:var(--text);transition:.2s}
+.icon-btn:hover{background:var(--hover)}
+
+.feed{flex:1;overflow-y:auto;padding:24px 20px 160px;overscroll-behavior:contain}
+.thread{max-width:820px;margin:auto}
+.empty-state{height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px}
+.empty-state h1{font-size:28px;font-weight:700}
+.empty-state p{color:var(--text-muted);max-width:440px;font-size:14px;line-height:1.6}
+
+.msg{display:flex;gap:14px;margin-bottom:24px}
+.msg-avatar{width:32px;height:32px;border-radius:10px;flex:0 0 32px;display:grid;place-items:center;font-size:14px;font-weight:700}
+.msg.user .msg-avatar{background:var(--hover);color:var(--text);border:1px solid var(--border)}
+.msg.ai .msg-avatar{background:var(--accent);color:var(--accent-text)}
+.msg-body{flex:1;min-width:0}
+.bubble{line-height:1.7;font-size:15px;word-break:break-word}
+.msg.user .bubble{background:var(--msg-user);padding:10px 16px;border-radius:18px 4px 18px 18px;display:inline-block}
+.msg.ai .bubble{padding:2px 0}
+
+.ai .bubble pre{background:var(--code-bg);padding:14px;border-radius:10px;overflow-x:auto;direction:ltr;text-align:left;margin:10px 0;border:1px solid var(--border);position:relative}
+.ai .bubble code{font-family:monospace;background:rgba(120,120,120,0.15);padding:2px 6px;border-radius:4px;font-size:13.5px}
+.ai .bubble pre code{background:transparent;padding:0}
+.ai .bubble ul, .ai .bubble ol{padding-right:22px;padding-left:0;margin:8px 0}
+.ai .bubble li{margin-bottom:4px}
+.ai .bubble table{border-collapse:collapse;width:100%;margin:12px 0}
+.ai .bubble th,.ai .bubble td{border:1px solid var(--border);padding:8px 12px;text-align:inherit}
+.ai .bubble th{background:var(--hover)}
+
+/* Run Code Sandbox Button */
+.run-code-btn{
+  margin-top:6px;
+  background:var(--hover);
+  border:1px solid var(--border);
+  color:var(--text);
+  padding:6px 12px;
+  border-radius:8px;
+  cursor:pointer;
+  font-size:12px;
+  font-weight:600;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  transition:.2s;
+}
+.run-code-btn:hover{background:var(--accent);color:var(--accent-text)}
+
+.msg-actions{display:flex;gap:6px;margin-top:8px;opacity:0;transition:.2s}
+.msg:hover .msg-actions{opacity:1}
+.action-btn{border:0;background:transparent;color:var(--text-muted);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:6px}
+.action-btn:hover{background:var(--hover);color:var(--text)}
+
+.composer-wrap{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent, var(--bg) 40%);padding:20px 20px 18px}
+.composer{max-width:820px;margin:auto;border:1px solid var(--border);border-radius:20px;background:var(--input-bg);box-shadow:0 8px 30px var(--shadow);padding:10px 14px 8px;transition:border-color .2s}
+.composer:focus-within{border-color:var(--accent)}
+textarea{width:100%;border:0;outline:0;resize:none;min-height:44px;max-height:180px;padding:6px 4px;background:transparent;line-height:1.6}
+.composer-bottom{display:flex;align-items:center;justify-content:space-between;padding-top:4px}
+.hint{font-size:11px;color:var(--text-muted)}
+.send-btn{width:36px;height:36px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-text);cursor:pointer;display:grid;place-items:center;transition:.2s}
+.send-btn:disabled{opacity:.25;cursor:default}
+
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:grid;place-items:center;z-index:20000;opacity:0;pointer-events:none;transition:.2s;backdrop-filter:blur(3px)}
+.modal-bg.open{opacity:1;pointer-events:all}
+.modal{background:var(--card);width:min(520px,94vw);max-height:85vh;overflow-y:auto;border-radius:18px;padding:22px;box-shadow:0 12px 40px var(--shadow);border:1px solid var(--border)}
+.modal h3{margin-bottom:16px;font-size:18px}
+.modal label{font-size:13px;color:var(--text-muted);display:block;margin-bottom:6px}
+.modal input, .modal textarea{width:100%;border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:14px;outline:none;background:var(--bg);color:var(--text)}
+
+/* Sandbox Modal Specifics */
+.modal.sandbox-modal{width:min(900px,95vw);height:85vh;max-height:85vh;display:flex;flex-direction:column;padding:16px}
+.sandbox-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.sandbox-frame{flex:1;border:1px solid var(--border);border-radius:10px;background:#ffffff;width:100%;height:100%}
+
+.custom-select-container{position:relative;min-width:140px;margin-bottom:14px}
+.custom-select-trigger{
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:10px;
+  background:var(--bg);
+  color:var(--text);
+  font-size:12px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  user-select:none;
+}
+.custom-select-options{
+  position:absolute;
+  top:calc(100% + 4px);
+  right:0;
+  left:0;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  box-shadow:0 8px 24px var(--shadow);
+  z-index:50000;
+  display:none;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.custom-select-options.open{display:block}
+.custom-option-item{
+  padding:10px;
+  font-size:12px;
+  color:var(--text);
+  cursor:pointer;
+  transition:background 0.15s;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.custom-option-item:hover{background:var(--hover)}
+.custom-option-item.selected{font-weight:bold;background:var(--hover)}
+
+.memory-box{border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:14px;background:var(--bg)}
+.memory-input-group{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
+.memory-input-group input{margin-bottom:0;flex:1;min-width:180px}
+.memory-add-btn{border:0;background:var(--accent);color:var(--accent-text);padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:600;font-size:13px}
+.memory-list{display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto}
+.memory-item{display:flex;align-items:center;justify-content:space-between;background:var(--hover);padding:8px 10px;border-radius:8px;font-size:12px;gap:8px}
+.memory-text-wrap{display:flex;align-items:center;gap:8px;overflow:hidden;flex:1}
+.memory-tag{padding:2px 6px;border-radius:4px;font-size:10px;font-weight:bold;white-space:nowrap;flex-shrink:0}
+.tag-low{background:rgba(128,128,128,0.2);color:var(--text-muted)}
+.tag-medium{background:rgba(59,130,246,0.15);color:#3b82f6}
+.tag-high{background:rgba(245,158,11,0.15);color:#f59e0b}
+.tag-always{background:rgba(239,68,68,0.15);color:#ef4444}
+.memory-del-btn{border:0;background:transparent;color:#ff4d4f;cursor:pointer;padding:2px 6px;border-radius:4px;font-weight:bold}
+.memory-del-btn:hover{background:rgba(255,77,79,0.15)}
+
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+.modal-btns button{border:0;padding:8px 18px;border-radius:8px;cursor:pointer;font-weight:600}
+.btn-save{background:var(--accent);color:var(--accent-text)}
+.btn-cancel{background:var(--hover)}
+
+/* LTR Direction Overrides */
+html[dir="ltr"] .sidebar {
+  right: auto;
+  left: 0;
+  border-left: 0;
+  border-right: 1px solid var(--border);
+}
+html[dir="ltr"] .main {
+  margin-right: 0;
+  margin-left: 280px;
+}
+@media(max-width:768px){
+  html[dir="ltr"] .sidebar {
+    transform: translateX(-100%);
+    box-shadow: 5px 0 25px var(--shadow);
+  }
+  html[dir="ltr"] .sidebar.open {
+    transform: translateX(0);
+  }
+  html[dir="ltr"] .main {
+    margin-left: 0;
+  }
+}
+html[dir="ltr"] .chat-item { text-align: left; }
+html[dir="ltr"] .msg.user .bubble { border-radius: 18px 18px 4px 18px; }
+html[dir="ltr"] .ai .bubble ul, html[dir="ltr"] .ai .bubble ol { padding-left: 22px; padding-right: 0; }
+</style>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="brand">
+    <div class="logo-area">
+      <div class="logo" id="logoIcon"></div>
+      <span>NOVA AI</span>
+    </div>
+  </div>
+  
+  <button class="new-btn" onclick="handleNewChat()">
+    <span id="plusIcon"></span> <span id="txtNewChat">محادثة جديدة</span>
+  </button>
+  
+  <div class="chats-section" id="txtChatsHeader">سجل المحادثات</div>
+  <div class="chats-list" id="chatList"></div>
+  
+  <div class="profile">
+    <div class="profile-info">
+      <div class="avatar" id="sidebarAvatar">؟</div>
+      <div>
+        <b id="sidebarName">زائر</b><br>
+        <small id="statusText">جاهز</small>
+      </div>
+    </div>
+    <button class="icon-btn" onclick="handleOpenSettings()" title="الإعدادات" id="sidebarSettingsBtn"></button>
+  </div>
+</aside>
+
+<div class="app">
+  <main class="main">
+    <header class="topbar">
+      <div class="top-left">
+        <button class="icon-btn" onclick="toggleSidebar()" title="القائمة" id="menuBtn"></button>
+        <div class="topbar-title">NOVA <span id="modelHeaderDisplay">AI</span></div>
+      </div>
+
+      <!-- Specialized Mode Pills -->
+      <div class="mode-bar">
+        <button class="mode-pill active" id="modePillChat" onclick="setAppMode('chat')">💬 محادثة</button>
+        <button class="mode-pill" id="modePillWorld" onclick="setAppMode('world_sim')">🎮 محاكي العالم</button>
+        <button class="mode-pill" id="modePillGameDev" onclick="setAppMode('gamedev')">🕹️ كود الألعاب</button>
+        <button class="mode-pill agent-pill" id="modePillAgent" onclick="toggleAgentMode()">⚡ Agent: <span id="agentStatusText">Off</span></button>
+      </div>
+
+      <div class="top-right">
+        <button class="icon-btn" id="themeToggleBtn" onclick="toggleTheme()" title="تبديل المظهر"></button>
+        <button class="icon-btn" onclick="openSettings()" title="الإعدادات" id="topSettingsBtn"></button>
+      </div>
+    </header>
+
+    <section class="feed" id="feed">
+      <div class="thread" id="thread">
+        <div class="empty-state" id="empty">
+          <h1 id="emptyTitle">مرحباً بك في NOVA</h1>
+          <p id="emptyDesc">مساعدك الذكي الشخصي. يمكنك بدء محادثة جديدة، وتخصيص إعداداتك والذاكرة الدائمة بالكامل.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="composer-wrap">
+      <div class="composer">
+        <textarea id="input" rows="1" placeholder="اكتب رسالتك هنا..." oninput="resize(this);toggleSend()" onkeydown="keySend(event)"></textarea>
+        <div class="composer-bottom">
+          <span class="hint" id="txtHint">اضغط Enter للسطر الجديد والجوال · أو السهم للإرسال</span>
+          <button class="send-btn" id="send" onclick="sendMessage()" disabled></button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal Settings -->
+<div class="modal-bg" id="settingsModal" onclick="closeCustomDropdownOnClickOutside(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3 id="lblSettingsTitle">إعدادات NOVA AI</h3>
+    
+    <label id="lblYourName">اسمك الكريم:</label>
+    <input type="text" id="modalNameInput" placeholder="مثال: علي">
+    
+    <label id="lblApiKey">مفتاح Gemini API Key:</label>
+    <input type="password" id="modalApiKeyInput" placeholder="AIzaSy...">
+    
+    <!-- Model Selector Dropdown -->
+    <label id="lblModelSelect">نموذج الذكاء الاصطناعي (Model):</label>
+    <div class="custom-select-container">
+      <div class="custom-select-trigger" onclick="toggleCustomModelDropdown(event)">
+        <span id="selectedModelText">Gemini 3.6 Flash</span>
+        <small style="opacity:0.6;">▼</small>
+      </div>
+      <div class="custom-select-options" id="customModelOptions">
+        <div class="custom-option-item selected" onclick="selectModel('gemini-3.6-flash', 'Gemini 3.6 Flash')">Gemini 3.6 Flash</div>
+        <div class="custom-option-item" onclick="selectModel('gemini-3.5-flash', 'Gemini 3.5 Flash')">Gemini 3.5 Flash</div>
+        <div class="custom-option-item" onclick="selectModel('gemini-3.0-flash', 'Gemini 3.0 Flash')">Gemini 3.0 Flash</div>
+        <div class="custom-option-item" onclick="selectModel('gemini-2.5-flash', 'Gemini 2.5 Flash')">Gemini 2.5 Flash</div>
+        <div class="custom-option-item" onclick="selectModel('gemini-2.0-flash', 'Gemini 2.0 Flash')">Gemini 2.0 Flash</div>
+        <div class="custom-option-item" onclick="selectModel('gemini-1.5-flash', 'Gemini 1.5 Flash')">Gemini 1.5 Flash</div>
+        <div class="custom-option-item" onclick="selectModel('gemini-1.5-pro', 'Gemini 1.5 Pro')">Gemini 1.5 Pro</div>
+      </div>
+    </div>
+
+    <!-- Custom Language Dropdown -->
+    <label id="lblAppLang">لغة الواجهة والتطبيق:</label>
+    <div class="custom-select-container">
+      <div class="custom-select-trigger" onclick="toggleCustomLanguageDropdown(event)">
+        <span id="selectedLanguageText">الإفتراضي (تلقائي حسب الجهاز)</span>
+        <small style="opacity:0.6;">▼</small>
+      </div>
+      <div class="custom-select-options" id="customLanguageOptions">
+        <div class="custom-option-item selected" onclick="selectLanguage('auto', 'auto')">الإفتراضي (تلقائي حسب الجهاز)</div>
+        <div class="custom-option-item" onclick="selectLanguage('ar', 'ar')">العربية (Arabic)</div>
+        <div class="custom-option-item" onclick="selectLanguage('en', 'en')">English</div>
+      </div>
+    </div>
+
+    <label id="lblMemory">الذاكرة الدائمة المخصصة:</label>
+    <div class="memory-box">
+      <div class="memory-input-group">
+        <input type="text" id="newMemoryInput" placeholder="أدخل المعلومة..." onkeydown="if(event.key==='Enter') addMemoryUI()">
+        
+        <!-- Custom Priority Dropdown -->
+        <div class="custom-select-container" style="margin-bottom:0;">
+          <div class="custom-select-trigger" onclick="toggleCustomPriorityDropdown(event)">
+            <span id="selectedPriorityText">سياقية (عادي)</span>
+            <small style="opacity:0.6;">▼</small>
+          </div>
+          <div class="custom-select-options" id="customPriorityOptions">
+            <div class="custom-option-item" onclick="selectPriority('low')">مرجعية (عند الطلب)</div>
+            <div class="custom-option-item selected" onclick="selectPriority('medium')">سياقية (عادي)</div>
+            <div class="custom-option-item" onclick="selectPriority('high')">تفاعلية (متوسط)</div>
+            <div class="custom-option-item" onclick="selectPriority('always')">دائم (صارم)</div>
+          </div>
+        </div>
+
+        <button class="memory-add-btn" id="btnAddMem" onclick="addMemoryUI()">إضافة</button>
+      </div>
+      <div class="memory-list" id="memoryList"></div>
+    </div>
+
+    <label id="lblPrompt">تعليمات المساعد المخصصة (Custom Instructions):</label>
+    <textarea id="modalPromptInput" rows="2" placeholder="أنت مساعد ذكي ومرح وتجيب باختصار..."></textarea>
+    
+    <div class="modal-btns">
+      <button class="btn-cancel" id="btnCancelSettings" onclick="closeSettings()">إلغاء</button>
+      <button class="btn-save" id="btnSaveSettings" onclick="saveSettings()">حفظ الإعدادات</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Edit Message -->
+<div class="modal-bg" id="editModal">
+  <div class="modal">
+    <h3 id="lblEditTitle">تعديل الرسالة</h3>
+    <textarea id="editMessageInput" rows="4" style="resize:vertical;min-height:90px;"></textarea>
+    <div class="modal-btns">
+      <button class="btn-cancel" id="btnCancelEdit" onclick="closeEditModal()">إلغاء</button>
+      <button class="btn-save" id="btnSaveEdit" onclick="saveEdit()">حفظ وإرسال</button>
+    </div>
+  </div>
+</div>
+
+<!-- Live Sandbox Artifacts Modal -->
+<div class="modal-bg" id="sandboxModal">
+  <div class="modal sandbox-modal">
+    <div class="sandbox-header">
+      <h3>👁️ معاينة الكود الحية (Live Code Sandbox)</h3>
+      <button class="icon-btn" onclick="closeSandbox()">✕</button>
+    </div>
+    <iframe id="sandboxFrame" class="sandbox-frame" sandbox="allow-scripts allow-modals"></iframe>
+  </div>
+</div>
+
+<script>
+const SVGS = {
+  sparkle: `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z"/></svg>`,
+  plus: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
+  chat: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>`,
+  trash: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`,
+  settings: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`,
+  menu: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>`,
+  sun: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`,
+  moon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`,
+  copy: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`,
+  refresh: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>`,
+  edit: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`,
+  send: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>`
+};
+
+const i18n = {
+  ar: {
+    newChat: "محادثة جديدة",
+    history: "سجل المحادثات",
+    guest: "زائر",
+    ready: "جاهز ومتصل",
+    noKey: "بدون مفتاح API",
+    welcome: "مرحباً بك في NOVA",
+    welcomeDescNoKey: "يرجى إدخال مفتاح الـ API من الإعدادات للبدء.",
+    welcomeDescKey: "اسألني أي شيء، أنا جاهز لمساعدتك!",
+    placeholder: "اكتب رسالتك هنا...",
+    hint: "اضغط Enter للسطر الجديد والجوال · أو السهم للإرسال",
+    settingsTitle: "إعدادات NOVA AI",
+    nameLabel: "اسمك الكريم:",
+    namePlaceholder: "مثال: علي",
+    apiKeyLabel: "مفتاح Gemini API Key:",
+    modelLabel: "نموذج الذكاء الاصطناعي (Model):",
+    langLabel: "لغة الواجهة والتطبيق:",
+    memoryLabel: "الذاكرة الدائمة المخصصة:",
+    memPlaceholder: "أدخل المعلومة...",
+    addMem: "إضافة",
+    noMem: "لا توجد معلومات محفوظة بعد. أضف بعض الحقائق المهمة وتأثيرها.",
+    promptLabel: "تعليمات المساعد المخصصة (Custom Instructions):",
+    promptPlaceholder: "أنت مساعد ذكي ومرح وتجيب باختصار...",
+    cancel: "إلغاء",
+    save: "حفظ الإعدادات",
+    editTitle: "تعديل الرسالة",
+    saveSend: "حفظ وإرسال",
+    copy: "نسخ",
+    copied: "تم النسخ!",
+    retry: "إعادة المحاولة",
+    edit: "تعديل",
+    thinking: "جاري التفكير...",
+    noKeyMsg: "عذراً، لم تقم بإدخال مفتاح الـ API بعد. يرجى الضغط على زر الإعدادات للبدء.",
+    langAuto: "الإفتراضي (تلقائي حسب الجهاز)",
+    langAr: "العربية (Arabic)",
+    langEn: "English",
+    pLow: "مرجعية (عند الطلب)",
+    pMed: "سياقية (عادي)",
+    pHigh: "تفاعلية (متوسط)",
+    pAlways: "دائم (صارم)"
+  },
+  en: {
+    newChat: "New Chat",
+    history: "Chat History",
+    guest: "Guest",
+    ready: "Ready & Connected",
+    noKey: "No API Key",
+    welcome: "Welcome to NOVA",
+    welcomeDescNoKey: "Please enter your API Key in Settings to start.",
+    welcomeDescKey: "Ask me anything, I am ready to help!",
+    placeholder: "Type your message here...",
+    hint: "Press Enter for new line · Click arrow to send",
+    settingsTitle: "NOVA AI Settings",
+    nameLabel: "Your Name:",
+    namePlaceholder: "e.g. Ali",
+    apiKeyLabel: "Gemini API Key:",
+    modelLabel: "AI Model:",
+    langLabel: "App Language:",
+    memoryLabel: "Custom Persistent Memory:",
+    memPlaceholder: "Enter information...",
+    addMem: "Add",
+    noMem: "No saved memories yet. Add key facts to remember.",
+    promptLabel: "Custom System Instructions:",
+    promptPlaceholder: "You are a friendly, helpful AI assistant...",
+    cancel: "Cancel",
+    save: "Save Settings",
+    editTitle: "Edit Message",
+    saveSend: "Save & Send",
+    copy: "Copy",
+    copied: "Copied!",
+    retry: "Retry",
+    edit: "Edit",
+    thinking: "Thinking...",
+    noKeyMsg: "Sorry, you haven't entered an API Key yet. Click Settings to begin.",
+    langAuto: "Default (System Auto)",
+    langAr: "Arabic (العربية)",
+    langEn: "English",
+    pLow: "Reference (On Request)",
+    pMed: "Contextual (Normal)",
+    pHigh: "Interactive (Medium)",
+    pAlways: "Always (Strict)"
+  }
+};
+
+document.getElementById("logoIcon").innerHTML = SVGS.sparkle;
+document.getElementById("plusIcon").innerHTML = SVGS.plus;
+document.getElementById("sidebarSettingsBtn").innerHTML = SVGS.settings;
+document.getElementById("topSettingsBtn").innerHTML = SVGS.settings;
+document.getElementById("menuBtn").innerHTML = SVGS.menu;
+document.getElementById("send").innerHTML = SVGS.send;
+
+let chats = JSON.parse(localStorage.getItem("nova_chats") || "[]");
+let rawMemories = JSON.parse(localStorage.getItem("nova_memories") || "[]");
+let memories = rawMemories.map(m => typeof m === "string" ? { text: m, priority: "medium" } : m);
+
+let selectedPriority = "medium";
+let selectedLanguage = localStorage.getItem("nova_language") || "auto";
+let selectedModel = localStorage.getItem("nova_model") || "gemini-3.6-flash";
+let activeMode = "chat"; // Options: 'chat', 'world_sim', 'gamedev'
+let isAgentMode = localStorage.getItem("nova_agent_mode") === "true";
+
+let currentChatId = null;
+let currentMessages = [];
+let editingIndex = null;
+
+let userName = localStorage.getItem("nova_user_name") || "";
+let apiKey = localStorage.getItem("nova_api_key") || "";
+let customPrompt = localStorage.getItem("nova_custom_prompt") || "";
+let theme = localStorage.getItem("nova_theme") || "dark";
+
+const input = document.getElementById("input");
+const sendBtn = document.getElementById("send");
+const thread = document.getElementById("thread");
+const feed = document.getElementById("feed");
+const chatList = document.getElementById("chatList");
+
+applyTheme(theme);
+applyLanguage(selectedLanguage);
+updateHeaderModelDisplay();
+updateAgentPillUI();
+
+function getActiveLang() {
+  if (selectedLanguage === "auto") {
+    return (navigator.language && navigator.language.startsWith("ar")) ? "ar" : "en";
+  }
+  return selectedLanguage;
+}
+
+function updateHeaderModelDisplay() {
+  document.getElementById("modelHeaderDisplay").textContent = selectedModel.replace("gemini-", "").toUpperCase();
+}
+
+function setAppMode(mode) {
+  activeMode = mode;
+  document.querySelectorAll(".mode-pill").forEach(btn => btn.classList.remove("active"));
+  if(mode === 'chat') document.getElementById("modePillChat").classList.add("active");
+  if(mode === 'world_sim') document.getElementById("modePillWorld").classList.add("active");
+  if(mode === 'gamedev') document.getElementById("modePillGameDev").classList.add("active");
+}
+
+function toggleAgentMode() {
+  isAgentMode = !isAgentMode;
+  localStorage.setItem("nova_agent_mode", isAgentMode);
+  updateAgentPillUI();
+}
+
+function updateAgentPillUI() {
+  const agentBtn = document.getElementById("modePillAgent");
+  const agentStatus = document.getElementById("agentStatusText");
+  if(isAgentMode) {
+    agentBtn.classList.add("active");
+    agentStatus.textContent = "On";
+  } else {
+    agentBtn.classList.remove("active");
+    agentStatus.textContent = "Off";
+  }
+}
+
+function applyTheme(t) {
+  theme = t;
+  document.documentElement.setAttribute("data-theme", t);
+  localStorage.setItem("nova_theme", t);
+  document.getElementById("themeToggleBtn").innerHTML = t === "dark" ? SVGS.sun : SVGS.moon;
+}
+
+function toggleTheme() {
+  applyTheme(theme === "dark" ? "light" : "dark");
+}
+
+function applyLanguage(lang) {
+  selectedLanguage = lang;
+  localStorage.setItem("nova_language", lang);
+  
+  const activeLang = getActiveLang();
+  const t = i18n[activeLang];
+
+  document.documentElement.setAttribute("dir", activeLang === "ar" ? "rtl" : "ltr");
+  document.documentElement.setAttribute("lang", activeLang);
+
+  document.getElementById("txtNewChat").textContent = t.newChat;
+  document.getElementById("txtChatsHeader").textContent = t.history;
+  document.getElementById("emptyTitle").textContent = t.welcome;
+  document.getElementById("emptyDesc").textContent = apiKey ? t.welcomeDescKey : t.welcomeDescNoKey;
+  document.getElementById("input").placeholder = t.placeholder;
+  document.getElementById("txtHint").textContent = t.hint;
+
+  document.getElementById("lblSettingsTitle").textContent = t.settingsTitle;
+  document.getElementById("lblYourName").textContent = t.nameLabel;
+  document.getElementById("modalNameInput").placeholder = t.namePlaceholder;
+  document.getElementById("lblApiKey").textContent = t.apiKeyLabel;
+  document.getElementById("lblModelSelect").textContent = t.modelLabel;
+  document.getElementById("lblAppLang").textContent = t.langLabel;
+  document.getElementById("lblMemory").textContent = t.memoryLabel;
+  document.getElementById("newMemoryInput").placeholder = t.memPlaceholder;
+  document.getElementById("btnAddMem").textContent = t.addMem;
+  document.getElementById("lblPrompt").textContent = t.promptLabel;
+  document.getElementById("modalPromptInput").placeholder = t.promptPlaceholder;
+  document.getElementById("btnCancelSettings").textContent = t.cancel;
+  document.getElementById("btnSaveSettings").textContent = t.save;
+  document.getElementById("lblEditTitle").textContent = t.editTitle;
+  document.getElementById("btnCancelEdit").textContent = t.cancel;
+  document.getElementById("btnSaveEdit").textContent = t.saveSend;
+
+  updateUserProfile();
+  renderMemories();
+}
+
+function updateUserProfile() {
+  const t = i18n[getActiveLang()];
+  const av = document.getElementById("sidebarAvatar");
+  const nm = document.getElementById("sidebarName");
+  const st = document.getElementById("statusText");
+  const modalInput = document.getElementById("modalNameInput");
+  
+  if (userName) {
+    av.textContent = userName.charAt(0).toUpperCase();
+    nm.textContent = userName;
+    if(modalInput) modalInput.value = userName;
+  } else {
+    av.textContent = "؟";
+    nm.textContent = t.guest;
+    if(modalInput) modalInput.value = "";
+  }
+  st.textContent = apiKey ? t.ready : t.noKey;
+}
+
+function checkAndUpdateNameFromText(text) {
+  if (!text) return;
+  const patterns = [
+    /(?:اسمي|إسمي)\s+(?:هو\s+)?([آ-يa-zA-Zأإآىئءؤشسيبلاتنمكطَُِّْـ]+)/i,
+    /(?:أنا|انا)\s+(?:اسمي|إسمي)\s+([آ-يa-zA-Zأإآىئءؤشسيبلاتنمكطَُِّْـ]+)/i,
+    /(?:نادني|ناديني|ادعني|ادعوني|سميني)\s+([آ-يa-zA-Zأإآىئءؤشسيبلاتنمكطَُِّْـ]+)/i,
+    /(?:غير|عدل)\s+(?:اسمي|إسمي)\s+(?:إلى|الى|لـ)?\s*([آ-يa-zA-Zأإآىئءؤشسيبلاتنمكطَُِّْـ]+)/i,
+    /(?:my name is|call me|i am)\s+([a-zA-Z]+)/i
+  ];
+  const ignoreList = ["شنو", "ايش", "ماذا", "شنهو", "شنيا", "what", "how", "who", "سؤال"];
+  
+  for (let pattern of patterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      const extracted = match[1].trim();
+      if (!ignoreList.includes(extracted.toLowerCase())) {
+        userName = extracted;
+        localStorage.setItem("nova_user_name", userName);
+        updateUserProfile();
+        break;
+      }
+    }
+  }
+}
+
+function toggleCustomPriorityDropdown(e) {
+  e.stopPropagation();
+  closeAllCustomDropdowns();
+  document.getElementById("customPriorityOptions").classList.toggle("open");
+}
+
+function toggleCustomLanguageDropdown(e) {
+  e.stopPropagation();
+  closeAllCustomDropdowns();
+  document.getElementById("customLanguageOptions").classList.toggle("open");
+}
+
+function toggleCustomModelDropdown(e) {
+  e.stopPropagation();
+  closeAllCustomDropdowns();
+  document.getElementById("customModelOptions").classList.toggle("open");
+}
+
+function closeAllCustomDropdowns() {
+  document.querySelectorAll(".custom-select-options").forEach(el => el.classList.remove("open"));
+}
+
+function selectPriority(value) {
+  selectedPriority = value;
+  const t = i18n[getActiveLang()];
+  const priorityMapText = { low: t.pLow, medium: t.pMed, high: t.pHigh, always: t.pAlways };
+  document.getElementById("selectedPriorityText").textContent = priorityMapText[value];
+  closeAllCustomDropdowns();
+}
+
+function selectLanguage(value) {
+  selectedLanguage = value;
+  const activeLang = getActiveLang();
+  const t = i18n[activeLang];
+  const langMapText = { auto: t.langAuto, ar: t.langAr, en: t.langEn };
+  document.getElementById("selectedLanguageText").textContent = langMapText[value] || t.langAuto;
+  closeAllCustomDropdowns();
+}
+
+function selectModel(modelValue, labelText) {
+  selectedModel = modelValue;
+  localStorage.setItem("nova_model", modelValue);
+  document.getElementById("selectedModelText").textContent = labelText;
+  updateHeaderModelDisplay();
+  closeAllCustomDropdowns();
+}
+
+function closeCustomDropdownOnClickOutside(e) {
+  closeAllCustomDropdowns();
+}
+
+function renderMemories() {
+  const activeLang = getActiveLang();
+  const t = i18n[activeLang];
+  const list = document.getElementById("memoryList");
+  list.innerHTML = "";
+
+  const priorityLabels = {
+    low: { label: activeLang === 'ar' ? 'مرجعية' : 'Ref', class: 'tag-low' },
+    medium: { label: activeLang === 'ar' ? 'سياقية' : 'Context', class: 'tag-medium' },
+    high: { label: activeLang === 'ar' ? 'تفاعلية' : 'Interactive', class: 'tag-high' },
+    always: { label: activeLang === 'ar' ? 'صارم' : 'Strict', class: 'tag-always' }
+  };
+
+  if (memories.length === 0) {
+    list.innerHTML = `<span style="color:var(--text-muted);font-size:11px;">${t.noMem}</span>`;
+    return;
+  }
+  memories.forEach((mem, index) => {
+    const pInfo = priorityLabels[mem.priority] || priorityLabels.medium;
+    const item = document.createElement("div");
+    item.className = "memory-item";
+    item.innerHTML = `
+      <div class="memory-text-wrap">
+        <span class="memory-tag ${pInfo.class}">${pInfo.label}</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(mem.text)}</span>
+      </div>
+      <button class="memory-del-btn" onclick="deleteMemory(${index})" title="Delete">✕</button>
+    `;
+    list.appendChild(item);
+  });
+}
+
+function addMemoryUI() {
+  const memInput = document.getElementById("newMemoryInput");
+  const val = memInput.value.trim();
+  if (val) {
+    memories.push({ text: val, priority: selectedPriority });
+    localStorage.setItem("nova_memories", JSON.stringify(memories));
+    memInput.value = "";
+    renderMemories();
+  }
+}
+
+function deleteMemory(index) {
+  memories.splice(index, 1);
+  localStorage.setItem("nova_memories", JSON.stringify(memories));
+  renderMemories();
+}
+
+function openSettings() {
+  const activeLang = getActiveLang();
+  const t = i18n[activeLang];
+  
+  document.getElementById("modalNameInput").value = userName;
+  document.getElementById("modalApiKeyInput").value = apiKey;
+  document.getElementById("modalPromptInput").value = customPrompt;
+  
+  const langMapText = { auto: t.langAuto, ar: t.langAr, en: t.langEn };
+  document.getElementById("selectedLanguageText").textContent = langMapText[selectedLanguage] || t.langAuto;
+
+  document.getElementById("selectedModelText").textContent = selectedModel;
+
+  renderMemories();
+  document.getElementById("settingsModal").classList.add("open");
+}
+
+function closeSettings() {
+  document.getElementById("settingsModal").classList.remove("open");
+}
+
+function saveSettings() {
+  userName = document.getElementById("modalNameInput").value.trim();
+  apiKey = document.getElementById("modalApiKeyInput").value.trim();
+  customPrompt = document.getElementById("modalPromptInput").value.trim();
+  
+  localStorage.setItem("nova_user_name", userName);
+  localStorage.setItem("nova_api_key", apiKey);
+  localStorage.setItem("nova_custom_prompt", customPrompt);
+  localStorage.setItem("nova_model", selectedModel);
+  
+  applyLanguage(selectedLanguage);
+  updateHeaderModelDisplay();
+  closeSettings();
+}
+
+function handleOpenSettings() {
+  openSettings();
+  closeSidebar();
+}
+
+function toggleSidebar() {
+  document.getElementById("sidebar").classList.toggle("open");
+  document.getElementById("overlay").classList.toggle("open");
+}
+
+function closeSidebar() {
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("overlay").classList.remove("open");
+}
+
+function saveChats() { localStorage.setItem("nova_chats", JSON.stringify(chats)); }
+
+function renderChatList() {
+  chatList.innerHTML = "";
+  chats.forEach(c => {
+    const item = document.createElement("div");
+    item.className = "chat-item" + (c.id === currentChatId ? " active" : "");
+    item.onclick = () => { loadChat(c.id); closeSidebar(); };
+    item.innerHTML = `
+      <div class="chat-title-group">
+        ${SVGS.chat}
+        <span class="chat-title">${escapeHtml(c.title)}</span>
+      </div>
+      <button class="chat-del" onclick="deleteChat(event, ${c.id})">${SVGS.trash}</button>
+    `;
+    chatList.appendChild(item);
+  });
+}
+
+function deleteChat(e, id) {
+  e.stopPropagation();
+  chats = chats.filter(x => x.id !== id);
+  if (currentChatId === id) newChat();
+  else { saveChats(); renderChatList(); }
+}
+
+function handleNewChat() {
+  newChat();
+  closeSidebar();
+}
+
+function newChat() {
+  const t = i18n[getActiveLang()];
+  currentMessages = [];
+  currentChatId = null;
+  thread.innerHTML = `
+    <div class="empty-state">
+      <h1>${t.welcome}</h1>
+      <p>${apiKey ? t.welcomeDescKey : t.welcomeDescNoKey}</p>
+    </div>`;
+  input.value = "";
+  resize(input);
+  toggleSend();
+  renderChatList();
+}
+
+function loadChat(id) {
+  const c = chats.find(x => x.id === id);
+  if (!c) return;
+  currentChatId = id;
+  currentMessages = JSON.parse(JSON.stringify(c.messages));
+  renderMessages();
+  renderChatList();
+}
+
+function activeChat() { return chats.find(x => x.id === currentChatId); }
+
+function renderMessages() {
+  thread.innerHTML = "";
+  currentMessages.forEach((m, i) => addMessageToDOM(m.role, m.text, i));
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function addMessageToDOM(role, text, index) {
+  const t = i18n[getActiveLang()];
+  const row = document.createElement("div");
+  row.className = "msg " + role;
+  
+  const avatarContent = role === "user" ? (userName ? userName.charAt(0).toUpperCase() : (getActiveLang()==='ar'?"أ":"U")) : SVGS.sparkle;
+  
+  row.innerHTML = `
+    <div class="msg-avatar">${avatarContent}</div>
+    <div class="msg-body">
+      <div class="bubble"></div>
+      <div class="msg-actions" id="actions-${index}"></div>
+    </div>
+  `;
+  
+  const bubble = row.querySelector(".bubble");
+  const actions = row.querySelector(".msg-actions");
+  
+  if (role === "ai") {
+    bubble.innerHTML = marked.parse(text);
+    attachCodeRunButtons(bubble);
+    actions.innerHTML = `
+      <button class="action-btn" onclick="copyText(${index}, this)">${SVGS.copy} <span>${t.copy}</span></button>
+      <button class="action-btn" onclick="regenerate(${index})">${SVGS.refresh} <span>${t.retry}</span></button>
+    `;
+  } else {
+    bubble.textContent = text;
+    actions.innerHTML = `
+      <button class="action-btn" onclick="editMessage(${index})">${SVGS.edit} <span>${t.edit}</span></button>
+    `;
+  }
+  
+  thread.appendChild(row);
+}
+
+/* Sandbox Execution Functions */
+function attachCodeRunButtons(container) {
+  const codeBlocks = container.querySelectorAll("pre code");
+  codeBlocks.forEach(code => {
+    const codeText = code.innerText || code.textContent;
+    if (codeText.includes("<html") || codeText.includes("<!DOCTYPE") || codeText.includes("function") || codeText.includes("<script")) {
+      const parentPre = code.parentElement;
+      if (!parentPre.parentElement.querySelector(".run-code-btn")) {
+        const runBtn = document.createElement("button");
+        runBtn.className = "run-code-btn";
+        runBtn.innerHTML = `👁️ تشغيل الكود المباشر`;
+        runBtn.onclick = () => openSandbox(codeText);
+        parentPre.parentElement.insertBefore(runBtn, parentPre.nextSibling);
+      }
+    }
+  });
+}
+
+function openSandbox(code) {
+  const frame = document.getElementById("sandboxFrame");
+  document.getElementById("sandboxModal").classList.add("open");
+  frame.srcdoc = code;
+}
+
+function closeSandbox() {
+  document.getElementById("sandboxModal").classList.remove("open");
+  document.getElementById("sandboxFrame").srcdoc = "";
+}
+
+function copyText(index, btnEl) {
+  const text = currentMessages[index].text;
+  const t = i18n[getActiveLang()];
+  
+  const setSuccessState = () => {
+    if (!btnEl) return;
+    const span = btnEl.querySelector("span");
+    if (span) {
+      const originalText = span.textContent;
+      span.textContent = t.copied;
+      setTimeout(() => { span.textContent = originalText; }, 2000);
+    }
+  };
+
+  const fallbackCopy = (txt) => {
+    const textarea = document.createElement("textarea");
+    textarea.value = txt;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    try {
+      document.execCommand("copy");
+      setSuccessState();
+    } catch (err) {
+      console.error("Copy failed", err);
+    }
+    document.body.removeChild(textarea);
+  };
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text)
+      .then(() => setSuccessState())
+      .catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+async function requestGeminiAPI(targetModel, payload) {
+  return await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent`, {
+    method: "POST",
+    headers: { 
+      "Content-Type": "application/json",
+      "x-goog-api-key": apiKey
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+async function callLLM(promptText) {
+  const activeLang = getActiveLang();
+  const t = i18n[activeLang];
+
+  if (!apiKey) {
+    return t.noKeyMsg;
+  }
+
+  let systemInstruction = "You are an intelligent assistant named NOVA. ";
+  if (userName) systemInstruction += `User name is "${userName}". `;
+  
+  if (selectedLanguage === "ar") {
+    systemInstruction += "تحدث وأجب دائماً باللغة العربية بأسلوب متقن ومباشر. ";
+  } else if (selectedLanguage === "en") {
+    systemInstruction += "Always respond and communicate clearly and accurately in English. ";
+  } else {
+    systemInstruction += "Respond in the language used by the user automatically. ";
+  }
+
+  /* Special Mode Injectors */
+  if (activeMode === 'world_sim') {
+    systemInstruction += "\n[MODE: WORLD & GEOPOLITICAL SIMULATOR]\nAct as an immersive Game Master for a fictional world or nation simulation. Track resources, military, territory, and events in clean tables, and offer clear strategic choices to the user.";
+  } else if (activeMode === 'gamedev') {
+    systemInstruction += "\n[MODE: INDIE GAME DEV COPILOT]\nAct as an expert Game Developer Copilot specializing in Roblox (Luau), Phaser.js, HTML5 games, and logic design. Provide clean, well-commented code and help debug mechanics visually.";
+  }
+
+  /* Agent Mode Dynamic Actions Injector */
+  if (isAgentMode) {
+    systemInstruction += "\n[MODE: AI AGENT ACTIVE]\nYou have dynamic autonomy. If you need to execute system actions (e.g., adding to memory or running code directly), output a JSON block like:\n```agent-action\n{\n  \"actions\": [\n    {\"type\": \"add_memory\", \"text\": \"fact here\", \"priority\": \"medium\"},\n    {\"type\": \"preview_code\", \"code\": \"<html>...</html>\"}\n  ]\n}\n```\nExecute actions automatically whenever relevant!";
+  }
+
+  if (customPrompt) systemInstruction += `${customPrompt} `;
+
+  if (memories.length > 0) {
+    const alwaysM = memories.filter(m => m.priority === 'always');
+    const highM = memories.filter(m => m.priority === 'high');
+    const mediumM = memories.filter(m => m.priority === 'medium');
+    const lowM = memories.filter(m => m.priority === 'low');
+
+    systemInstruction += "\n\n[User Memories & Directives]:";
+    if (alwaysM.length > 0) systemInstruction += "\n* Strict Rules:\n" + alwaysM.map(m => " - " + m.text).join("\n");
+    if (highM.length > 0) systemInstruction += "\n* Interactive Facts:\n" + highM.map(m => " - " + m.text).join("\n");
+    if (mediumM.length > 0) systemInstruction += "\n* Contextual Facts:\n" + mediumM.map(m => " - " + m.text).join("\n");
+    if (lowM.length > 0) systemInstruction += "\n* Reference Facts:\n" + lowM.map(m => " - " + m.text).join("\n");
+  }
+
+  let contents = [];
+  currentMessages.forEach(m => {
+    if (m.text !== i18n.ar.thinking && m.text !== i18n.en.thinking) {
+      contents.push({
+        role: m.role === "user" ? "user" : "model",
+        parts: [{ text: m.text }]
+      });
+    }
+  });
+
+  const payload = {
+    system_instruction: { parts: [{ text: systemInstruction }] },
+    contents: contents
+  };
+
+  let fallbackChain = [
+    selectedModel,
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
+    "gemini-3.0-flash",
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+    "gemini-1.5-pro"
+  ];
+
+  let modelsToTry = [...new Set(fallbackChain.filter(Boolean))];
+
+  for (let i = 0; i < modelsToTry.length; i++) {
+    let currentTryModel = modelsToTry[i];
+    try {
+      let res = await requestGeminiAPI(currentTryModel, payload);
+      let data = await res.json();
+
+      if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
+        if (currentTryModel !== selectedModel) {
+          selectedModel = currentTryModel;
+          localStorage.setItem("nova_model", currentTryModel);
+          updateHeaderModelDisplay();
+        }
+        let fullResponseText = data.candidates[0].content.parts[0].text;
+        
+        // Execute Agent Actions if any exist in the response
+        if (isAgentMode) {
+          parseAndExecuteAgentActions(fullResponseText);
+        }
+
+        return fullResponseText;
+      }
+
+      if (data.error && data.error.message) {
+        const errMsg = data.error.message;
+        const match = errMsg.match(/models\/(gemini-[\w.-]+)/);
+        if (match && match[1]) {
+          const suggestedModel = match[1];
+          if (!modelsToTry.includes(suggestedModel)) {
+            modelsToTry.splice(i + 1, 0, suggestedModel);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(`فشل الاتصال بالنموذج: ${currentTryModel}`);
+    }
+  }
+
+  return "API Error: تعذر الاتصال بجميع النماذج المتاحة. يرجى التأكد من صحة مفتاح الـ API وتحديثه من الإعدادات.";
+}
+
+function parseAndExecuteAgentActions(text) {
+  const regex = /```agent-action\s*([\s\S]*?)\s*```/g;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    try {
+      const data = JSON.parse(match[1]);
+      if (data.actions && Array.isArray(data.actions)) {
+        data.actions.forEach(act => {
+          if (act.type === "add_memory" && act.text) {
+            memories.push({ text: act.text, priority: act.priority || "medium" });
+            localStorage.setItem("nova_memories", JSON.stringify(memories));
+            renderMemories();
+          } else if (act.type === "preview_code" && act.code) {
+            openSandbox(act.code);
+          }
+        });
+      }
+    } catch (e) {
+      console.error("Failed to parse agent action JSON", e);
+    }
+  }
+}
+
+async function sendMessage() {
+  const text = input.value.trim();
+  if (!text) return;
+
+  checkAndUpdateNameFromText(text);
+
+  if (currentChatId === null) {
+    currentChatId = Date.now();
+    chats.unshift({ id: currentChatId, title: text.slice(0, 30), messages: currentMessages });
+  }
+
+  currentMessages.push({ role: "user", text });
+  activeChat().messages = currentMessages;
+  saveChats();
+  renderMessages();
+  renderChatList();
+
+  input.value = "";
+  resize(input);
+  toggleSend();
+
+  const t = i18n[getActiveLang()];
+  const aiIndex = currentMessages.length;
+  currentMessages.push({ role: "ai", text: t.thinking });
+  renderMessages();
+
+  const answer = await callLLM(text);
+  currentMessages[aiIndex] = { role: "ai", text: answer };
+  activeChat().messages = currentMessages;
+  saveChats();
+  renderMessages();
+}
+
+async function regenerate(aiIndex) {
+  if (aiIndex <= 0) return;
+  const t = i18n[getActiveLang()];
+  
+  currentMessages = currentMessages.slice(0, aiIndex);
+  currentMessages.push({ role: "ai", text: t.thinking });
+  renderMessages();
+
+  const lastUserText = currentMessages[aiIndex - 1].text;
+  const answer = await callLLM(lastUserText);
+  
+  currentMessages[aiIndex] = { role: "ai", text: answer };
+  activeChat().messages = currentMessages;
+  saveChats();
+  renderMessages();
+}
+
+function editMessage(i) {
+  editingIndex = i;
+  document.getElementById("editMessageInput").value = currentMessages[i].text;
+  document.getElementById("editModal").classList.add("open");
+}
+
+function closeEditModal() {
+  document.getElementById("editModal").classList.remove("open");
+  editingIndex = null;
+}
+
+function saveEdit() {
+  if (editingIndex === null) return;
+  const newText = document.getElementById("editMessageInput").value.trim();
+  if (newText !== "") {
+    checkAndUpdateNameFromText(newText);
+    const t = i18n[getActiveLang()];
+    currentMessages[editingIndex].text = newText;
+    currentMessages = currentMessages.slice(0, editingIndex + 1);
+    activeChat().messages = currentMessages;
+    saveChats();
+    renderMessages();
+    
+    closeEditModal();
+
+    const aiIndex = currentMessages.length;
+    currentMessages.push({ role: "ai", text: t.thinking });
+    renderMessages();
+    
+    callLLM(newText).then(answer => {
+      currentMessages[aiIndex] = { role: "ai", text: answer };
+      activeChat().messages = currentMessages;
+      saveChats();
+      renderMessages();
+    });
+  }
+}
+
+function resize(el) { el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 180) + "px"; }
+function toggleSend() { sendBtn.disabled = !input.value.trim(); }
+
+function keySend(e) {
+  const isMobile = window.innerWidth <= 768 || 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  if (e.key === "Enter") {
+    if (!isMobile && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+}
+
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c])); }
+
+renderChatList();
+</script>
+</body>
+</html>
