@@ -172,7 +172,6 @@ svg{display:block;flex-shrink:0;pointer-events:none}
 }
 .code-copy-btn:hover{background:var(--accent);color:var(--accent-text)}
 
-/* Run Code Sandbox Button */
 .run-code-btn{
   margin-top:6px;
   background:var(--hover);
@@ -196,6 +195,11 @@ svg{display:block;flex-shrink:0;pointer-events:none}
 .action-btn:hover{background:var(--hover);color:var(--text)}
 .action-btn.speaking{color:var(--agent-color);background:var(--hover)}
 
+/* Attachments Rendered In Messages */
+.msg-attachments{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.msg-attachments img{max-width:260px;max-height:220px;border-radius:12px;border:1px solid var(--border);object-fit:cover;cursor:pointer}
+.msg-file-badge{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);padding:6px 12px;border-radius:10px;font-size:12px;font-weight:600;color:var(--text)}
+
 .composer-wrap{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent, var(--bg) 40%);padding:20px 20px 18px}
 .composer{max-width:820px;margin:auto;border:1px solid var(--border);border-radius:20px;background:var(--input-bg);box-shadow:0 8px 30px var(--shadow);padding:10px 14px 8px;transition:border-color .2s}
 .composer:focus-within{border-color:var(--accent)}
@@ -203,6 +207,10 @@ textarea{width:100%;border:0;outline:0;resize:none;min-height:44px;max-height:18
 .composer-bottom{display:flex;align-items:center;justify-content:space-between;padding-top:4px}
 .composer-actions{display:flex;align-items:center;gap:8px}
 .hint{font-size:11px;color:var(--text-muted)}
+
+.attach-btn{width:36px;height:36px;border:1px solid var(--border);border-radius:10px;background:var(--hover);color:var(--text);cursor:pointer;display:grid;place-items:center;transition:.2s}
+.attach-btn:hover{background:var(--card)}
+
 .send-btn{width:36px;height:36px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-text);cursor:pointer;display:grid;place-items:center;transition:.2s}
 .send-btn:disabled{opacity:.25;cursor:default}
 
@@ -225,6 +233,55 @@ textarea{width:100%;border:0;outline:0;resize:none;min-height:44px;max-height:18
   border-color:#ef4444;
   animation:pulse 1.5s infinite;
 }
+
+/* Attachments Preview Bar in Composer */
+.attachments-preview{display:flex;gap:8px;flex-wrap:wrap;padding:4px 4px 8px;margin-bottom:4px;border-bottom:1px solid var(--border)}
+.attachments-preview:empty{display:none;border-bottom:0}
+.attach-chip{display:flex;align-items:center;gap:8px;background:var(--hover);border:1px solid var(--border);padding:4px 10px;border-radius:10px;font-size:12px;max-width:220px}
+.attach-chip img{width:28px;height:28px;border-radius:6px;object-fit:cover}
+.chip-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.chip-del{border:0;background:transparent;color:var(--text-muted);cursor:pointer;font-weight:bold;padding:0 4px;font-size:14px;transition:.15s}
+.chip-del:hover{color:#ff4d4f}
+
+/* Attachments Bottom Sheet Drawer */
+.sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9995;display:none;backdrop-filter:blur(3px)}
+.sheet-overlay.open{display:block}
+.bottom-sheet{
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  background:var(--card);
+  border-top:1px solid var(--border);
+  border-radius:24px 24px 0 0;
+  padding:16px 20px 28px;
+  z-index:9998;
+  transform:translateY(100%);
+  transition:transform 0.25s cubic-bezier(0.1, 0.9, 0.2, 1);
+  box-shadow:0 -8px 30px var(--shadow);
+  max-width:820px;
+  margin:0 auto;
+}
+.bottom-sheet.open{transform:translateY(0)}
+.sheet-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px}
+.sheet-grid{display:flex;gap:16px;justify-content:flex-start}
+.sheet-item{
+  border:1px solid var(--border);
+  background:var(--bg);
+  border-radius:18px;
+  padding:16px 22px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+  cursor:pointer;
+  color:var(--text);
+  transition:.2s;
+  min-width:100px;
+}
+.sheet-item:hover{background:var(--hover);border-color:var(--accent)}
+.sheet-icon{font-size:26px}
+.sheet-item span{font-size:13px;font-weight:600}
 
 @keyframes pulse{
   0%{box-shadow:0 0 0 0 rgba(239, 68, 68, 0.4);}
@@ -399,10 +456,14 @@ html[dir="ltr"] .ai .bubble ul, html[dir="ltr"] .ai .bubble ol { padding-left: 2
 
     <div class="composer-wrap">
       <div class="composer">
+        <!-- Attachments Preview Bar -->
+        <div class="attachments-preview" id="attachmentsPreview"></div>
+
         <textarea id="input" rows="1" placeholder="اكتب رسالتك هنا..." oninput="resize(this);toggleSend()" onkeydown="keySend(event)"></textarea>
         <div class="composer-bottom">
           <span class="hint" id="txtHint">اضغط Enter للسطر الجديد والجوال · أو السهم للإرسال</span>
           <div class="composer-actions">
+            <button class="attach-btn" id="plusAttachBtn" onclick="toggleAttachSheet()" title="إضافة ملفات أو صور"></button>
             <button class="mic-btn" id="micBtn" onclick="toggleVoiceInput()" title="تحدث بالصوت"></button>
             <button class="send-btn" id="send" onclick="sendMessage()" disabled></button>
           </div>
@@ -411,6 +472,26 @@ html[dir="ltr"] .ai .bubble ul, html[dir="ltr"] .ai .bubble ol { padding-left: 2
     </div>
   </main>
 </div>
+
+<!-- Attachments Bottom Sheet Drawer -->
+<div class="sheet-overlay" id="sheetOverlay" onclick="closeAttachSheet()"></div>
+<div class="bottom-sheet" id="attachSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-grid">
+    <button class="sheet-item" onclick="triggerFileInput('imageInput')">
+      <div class="sheet-icon">🖼️</div>
+      <span id="txtSheetImages">الصور</span>
+    </button>
+    <button class="sheet-item" onclick="triggerFileInput('fileInput')">
+      <div class="sheet-icon">📎</div>
+      <span id="txtSheetFiles">الملفات</span>
+    </button>
+  </div>
+</div>
+
+<!-- Hidden File Inputs -->
+<input type="file" id="imageInput" accept="image/*" multiple onchange="handleImageSelect(event)" style="display:none">
+<input type="file" id="fileInput" accept=".txt,.js,.html,.css,.py,.json,.md,.cpp,.c,.java,.cs,.php,.sql,.xml" multiple onchange="handleFileSelect(event)" style="display:none">
 
 <!-- Modal Settings -->
 <div class="modal-bg" id="settingsModal" onclick="closeCustomDropdownOnClickOutside(event)">
@@ -573,7 +654,9 @@ const i18n = {
     pLow: "مرجعية (عند الطلب)",
     pMed: "سياقية (عادي)",
     pHigh: "تفاعلية (متوسط)",
-    pAlways: "دائم (صارم)"
+    pAlways: "دائم (صارم)",
+    sheetImages: "الصور",
+    sheetFiles: "الملفات"
   },
   en: {
     newChat: "New Chat",
@@ -617,12 +700,15 @@ const i18n = {
     pLow: "Reference (On Request)",
     pMed: "Contextual (Normal)",
     pHigh: "Interactive (Medium)",
-    pAlways: "Always (Strict)"
+    pAlways: "Always (Strict)",
+    sheetImages: "Images",
+    sheetFiles: "Files"
   }
 };
 
 document.getElementById("logoIcon").innerHTML = SVGS.sparkle;
 document.getElementById("plusIcon").innerHTML = SVGS.plus;
+document.getElementById("plusAttachBtn").innerHTML = SVGS.plus;
 document.getElementById("sidebarSettingsBtn").innerHTML = SVGS.settings;
 document.getElementById("topSettingsBtn").innerHTML = SVGS.settings;
 document.getElementById("menuBtn").innerHTML = SVGS.menu;
@@ -639,6 +725,7 @@ let selectedModel = localStorage.getItem("nova_model") || "gemini-3.6-flash";
 let activeMode = "chat";
 let isAgentMode = localStorage.getItem("nova_agent_mode") === "true";
 
+let attachedFiles = [];
 let currentChatId = null;
 let currentMessages = [];
 let editingIndex = null;
@@ -745,6 +832,9 @@ function applyLanguage(lang) {
   document.getElementById("btnCancelEdit").textContent = t.cancel;
   document.getElementById("btnSaveEdit").textContent = t.saveSend;
 
+  document.getElementById("txtSheetImages").textContent = t.sheetImages;
+  document.getElementById("txtSheetFiles").textContent = t.sheetFiles;
+
   updateUserProfile();
   renderMemories();
 }
@@ -791,6 +881,91 @@ function checkAndUpdateNameFromText(text) {
       }
     }
   }
+}
+
+/* Attachment Drawer & File Handler Functions */
+function toggleAttachSheet() {
+  document.getElementById("attachSheet").classList.toggle("open");
+  document.getElementById("sheetOverlay").classList.toggle("open");
+}
+
+function closeAttachSheet() {
+  document.getElementById("attachSheet").classList.remove("open");
+  document.getElementById("sheetOverlay").classList.remove("open");
+}
+
+function triggerFileInput(id) {
+  closeAttachSheet();
+  document.getElementById(id).click();
+}
+
+function handleImageSelect(event) {
+  const files = Array.from(event.target.files);
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      const base64 = dataUrl.split(',')[1];
+      attachedFiles.push({
+        type: 'image',
+        name: file.name,
+        mimeType: file.type || 'image/png',
+        base64: base64,
+        previewUrl: dataUrl
+      });
+      renderAttachmentsPreview();
+      toggleSend();
+    };
+    reader.readAsDataURL(file);
+  });
+  event.target.value = "";
+}
+
+function handleFileSelect(event) {
+  const files = Array.from(event.target.files);
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      attachedFiles.push({
+        type: 'file',
+        name: file.name,
+        content: e.target.result
+      });
+      renderAttachmentsPreview();
+      toggleSend();
+    };
+    reader.readAsText(file);
+  });
+  event.target.value = "";
+}
+
+function removeAttachment(index) {
+  attachedFiles.splice(index, 1);
+  renderAttachmentsPreview();
+  toggleSend();
+}
+
+function renderAttachmentsPreview() {
+  const previewBar = document.getElementById("attachmentsPreview");
+  previewBar.innerHTML = "";
+  attachedFiles.forEach((att, idx) => {
+    const chip = document.createElement("div");
+    chip.className = "attach-chip";
+    if (att.type === 'image') {
+      chip.innerHTML = `
+        <img src="${att.previewUrl}" alt="Preview">
+        <span class="chip-name">${escapeHtml(att.name)}</span>
+        <button class="chip-del" onclick="removeAttachment(${idx})">✕</button>
+      `;
+    } else {
+      chip.innerHTML = `
+        <span>📄</span>
+        <span class="chip-name">${escapeHtml(att.name)}</span>
+        <button class="chip-del" onclick="removeAttachment(${idx})">✕</button>
+      `;
+    }
+    previewBar.appendChild(chip);
+  });
 }
 
 function toggleCustomPriorityDropdown(e) {
@@ -979,6 +1154,8 @@ function newChat() {
   if (window.speechSynthesis) window.speechSynthesis.cancel();
   const t = i18n[getActiveLang()];
   currentMessages = [];
+  attachedFiles = [];
+  renderAttachmentsPreview();
   currentChatId = null;
   thread.innerHTML = `
     <div class="empty-state">
@@ -997,6 +1174,8 @@ function loadChat(id) {
   if (!c) return;
   currentChatId = id;
   currentMessages = JSON.parse(JSON.stringify(c.messages));
+  attachedFiles = [];
+  renderAttachmentsPreview();
   renderMessages();
   renderChatList();
 }
@@ -1005,20 +1184,34 @@ function activeChat() { return chats.find(x => x.id === currentChatId); }
 
 function renderMessages() {
   thread.innerHTML = "";
-  currentMessages.forEach((m, i) => addMessageToDOM(m.role, m.text, i));
+  currentMessages.forEach((m, i) => addMessageToDOM(m.role, m.text, i, m.attachments));
   feed.scrollTop = feed.scrollHeight;
 }
 
-function addMessageToDOM(role, text, index) {
+function addMessageToDOM(role, text, index, attachments) {
   const t = i18n[getActiveLang()];
   const row = document.createElement("div");
   row.className = "msg " + role;
   
   const avatarContent = role === "user" ? (userName ? userName.charAt(0).toUpperCase() : (getActiveLang()==='ar'?"أ":"U")) : SVGS.sparkle;
   
+  let attachHTML = '';
+  if (attachments && attachments.length > 0) {
+    attachHTML += '<div class="msg-attachments">';
+    attachments.forEach(att => {
+      if (att.type === 'image') {
+        attachHTML += `<img src="${att.previewUrl || ('data:' + att.mimeType + ';base64,' + att.base64)}" alt="${escapeHtml(att.name)}" onclick="openSandbox('<img src=\\'${att.previewUrl || ('data:' + att.mimeType + ';base64,' + att.base64)}\\' style=\\'max-width:100%;\\'>')">`;
+      } else if (att.type === 'file') {
+        attachHTML += `<div class="msg-file-badge">📄 ${escapeHtml(att.name)}</div>`;
+      }
+    });
+    attachHTML += '</div>';
+  }
+
   row.innerHTML = `
     <div class="msg-avatar">${avatarContent}</div>
     <div class="msg-body">
+      ${attachHTML}
       <div class="bubble"></div>
       <div class="msg-actions" id="actions-${index}"></div>
     </div>
@@ -1101,7 +1294,6 @@ function speakText(index, btnEl) {
   resetSpeakButtonsUI();
 
   let textToRead = currentMessages[index].text;
-  // Clean markdown syntax and code blocks for smooth reading
   textToRead = textToRead.replace(/```[\s\S]*?```/g, ' [كود برمجي] ').replace(/[*#_~`]/g, '');
 
   const utterance = new SpeechSynthesisUtterance(textToRead);
@@ -1111,7 +1303,6 @@ function speakText(index, btnEl) {
   utterance.rate = 1.0;
   utterance.pitch = 1.05;
 
-  // Pick best available natural voice
   const voices = window.speechSynthesis.getVoices();
   if (voices.length > 0) {
     const preferredVoice = voices.find(v => 
@@ -1308,9 +1499,31 @@ async function callLLM(promptText) {
   let contents = [];
   currentMessages.forEach(m => {
     if (m.text !== i18n.ar.thinking && m.text !== i18n.en.thinking) {
+      let parts = [];
+      if (m.text) parts.push({ text: m.text });
+      
+      if (m.attachments && m.attachments.length > 0) {
+        m.attachments.forEach(att => {
+          if (att.type === 'image') {
+            parts.push({
+              inline_data: {
+                mime_type: att.mimeType,
+                data: att.base64
+              }
+            });
+          } else if (att.type === 'file') {
+            parts.push({
+              text: `\n\n[محتوى الملف المرفق (${att.name})]:\n\`\`\`\n${att.content}\n\`\`\``
+            });
+          }
+        });
+      }
+      
+      if (parts.length === 0) parts.push({ text: "" });
+
       contents.push({
         role: m.role === "user" ? "user" : "model",
-        parts: [{ text: m.text }]
+        parts: parts
       });
     }
   });
@@ -1397,18 +1610,24 @@ function parseAndExecuteAgentActions(text) {
 
 async function sendMessage() {
   const text = input.value.trim();
-  if (!text) return;
+  if (!text && attachedFiles.length === 0) return;
 
   checkAndUpdateNameFromText(text);
 
   if (currentChatId === null) {
     currentChatId = Date.now();
-    chats.unshift({ id: currentChatId, title: text.slice(0, 30), messages: currentMessages });
+    const titleText = text || (attachedFiles[0] ? attachedFiles[0].name : "محادثة جديده");
+    chats.unshift({ id: currentChatId, title: titleText.slice(0, 30), messages: currentMessages });
   }
 
-  currentMessages.push({ role: "user", text });
+  const messageAttachments = JSON.parse(JSON.stringify(attachedFiles));
+
+  currentMessages.push({ role: "user", text, attachments: messageAttachments });
   activeChat().messages = currentMessages;
   saveChats();
+  
+  attachedFiles = [];
+  renderAttachmentsPreview();
   renderMessages();
   renderChatList();
 
@@ -1459,7 +1678,7 @@ function closeEditModal() {
 function saveEdit() {
   if (editingIndex === null) return;
   const newText = document.getElementById("editMessageInput").value.trim();
-  if (newText !== "") {
+  if (newText !== "" || (currentMessages[editingIndex].attachments && currentMessages[editingIndex].attachments.length > 0)) {
     checkAndUpdateNameFromText(newText);
     const t = i18n[getActiveLang()];
     currentMessages[editingIndex].text = newText;
@@ -1484,7 +1703,7 @@ function saveEdit() {
 }
 
 function resize(el) { el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 180) + "px"; }
-function toggleSend() { sendBtn.disabled = !input.value.trim(); }
+function toggleSend() { sendBtn.disabled = !input.value.trim() && attachedFiles.length === 0; }
 
 function keySend(e) {
   const isMobile = window.innerWidth <= 768 || 'ontouchstart' in window || navigator.maxTouchPoints > 0;
